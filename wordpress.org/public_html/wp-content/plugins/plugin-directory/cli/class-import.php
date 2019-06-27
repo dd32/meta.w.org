@@ -68,6 +68,7 @@ class Import {
 		$stable_tag      = $data['stable_tag'];
 		$tagged_versions = $data['tagged_versions'];
 		$blocks          = $data['blocks'];
+		$block_files     = $data['block_files'];
 
 		$content = '';
 		if ( $readme->sections ) {
@@ -174,6 +175,13 @@ class Import {
 			update_post_meta( $plugin->ID, 'all_blocks', $blocks );
 		} else {
 			delete_post_meta( $plugin->ID, 'all_blocks' );
+		}
+
+		// Only store block_files for plugins in the block directory
+		if ( count( $block_files ) && has_term( 'block', 'plugin_section', $plugin->ID ) ) {
+			update_post_meta( $plugin->ID, 'block_files', $block_files );
+		} else {
+			delete_post_meta( $plugin->ID, 'block_files' );
 		}
 
 		$current_stable_tag = get_post_meta( $plugin->ID, 'stable_tag', true ) ?: 'trunk';
@@ -422,7 +430,27 @@ class Import {
 			}
 		}
 
-		return compact( 'readme', 'stable_tag', 'tmp_dir', 'plugin_headers', 'assets', 'tagged_versions', 'blocks' );
+		// Find blocks dist/build JS files
+		$block_files = array();
+		$dist_files = SVN::ls( 'https://plugins.svn.wordpress.org' . "/{$plugin_slug}/trunk/dist" ) ?: array();
+		$build_files = SVN::ls( 'https://plugins.svn.wordpress.org' . "/{$plugin_slug}/trunk/build" ) ?: array();
+		$trunk_files = SVN::ls( 'https://plugins.svn.wordpress.org' . "/{$plugin_slug}/trunk" ) ?: array();
+
+		foreach ( $dist_files as $file ) {
+			$block_files[] = '/trunk/dist/' . $file;
+		}
+
+		foreach ( $build_files as $file ) {
+			$block_files[] = '/trunk/build/' . $file;
+		}
+
+		foreach ( $trunk_files as $file ) {
+			if ( preg_match( '!(.*\.css$)!i', $file ) ) {
+				$block_files[] = '/trunk/' . $file;
+			}
+		}
+
+		return compact( 'readme', 'stable_tag', 'tmp_dir', 'plugin_headers', 'assets', 'tagged_versions', 'blocks', 'block_files' );
 	}
 
 	/**
