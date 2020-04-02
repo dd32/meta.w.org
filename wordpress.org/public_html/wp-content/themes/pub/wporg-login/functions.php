@@ -356,19 +356,16 @@ function wporg_login_purge_pending_registrations() {
 add_action( 'login_purge_pending_registrations', 'wporg_login_purge_pending_registrations' );
 
 /**
- * Add a canonical tag to the login screens.
+ * The canonical url for login.wordpress.org is a bit different.
  */
-function wporg_login_canonical_link() {
-	$canonical = false;
+function wporg_login_canonical_link( $url ) {
+	$url = false;
 
 	// If the regular expression for this route is not matching, it's the canonical.
 	if ( false === stripos( WP_WPOrg_SSO::$matched_route_regex, '(' ) ) {
-		$canonical = site_url( WP_WPOrg_SSO::$matched_route_regex ?: '/' );
+		$url = site_url( WP_WPOrg_SSO::$matched_route_regex ?: '/' );
 	}
 
-	if ( $canonical ) {
-		printf( '<link rel="canonical" href="%s" />', esc_url( $canonical ) );
-	}
+	return $url;
 }
-add_action( 'login_head', 'wporg_login_canonical_link' );
-add_action( 'wp_head', 'wporg_login_canonical_link' );
+add_filter( 'wporg_canonical_link', 'wporg_login_canonical_link' );
